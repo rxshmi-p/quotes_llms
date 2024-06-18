@@ -1,44 +1,65 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-import streamlit as st
+import gradio as gr
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2', cache_dir='./models')
-model = GPT2LMHeadModel.from_pretrained('gpt2', cache_dir='./models')
-
-@st.cache(allow_output_mutation=True, suppress_st_warning=True)
+# Load the model and tokenizer
 def load_model():
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    model = GPT2LMHeadModel.from_pretrained('gpt2')
+    tokenizer = GPT2Tokenizer.from_pretrained('models/gpt2')
+    model = GPT2LMHeadModel.from_pretrained('finetuned_gpt')
     model.eval()
     return tokenizer, model
 
-# Streamlit UI
-st.title("GPT-2 Text Generation")
+tokenizer, model = load_model()
 
-# Display loading messages outside the cached function
-if 'model_loaded' not in st.session_state:
-    st.info("Loading model...")
-    tokenizer, model = load_model()
-    st.success("Model loaded successfully!")
-    st.session_state['model_loaded'] = True
-else:
-    tokenizer, model = load_model()
+def validate_input(text):
+    if len(text) > 20:
+        return False
+    if ' ' in text:
+        return False
+    if not all(c.isalnum() or c == '-' for c in text):
+        return False
+    return True
 
-def generate_text(prompt, max_length=50):
-    try:
-        inputs = tokenizer.encode(prompt, return_tensors='pt')
-        outputs = model.generate(inputs, max_length=max_length)
-        text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return text
-    except Exception as e:
-        return f"Error generating text: {e}"
+def generate_quote(user_input):
+    input_text = user_input + ":"
+    inputs = tokenizer.encode(input_text, return_tensors="pt")
+    outputs = model.generate(
+        inputs, 
+        max_length=100, 
+        num_return_sequences=1, 
+        pad_token_id=tokenizer.eos_token_id, 
+        temperature=0.9, 
+        top_k=50, 
+        do_sample=True
+    )
+    generated_quote = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return generated_quote
 
-prompt = st.text_input("Enter a prompt:")
-max_length = st.slider("Max length of generated text", 10, 100, 50)
+def main(category1, category2, category3, category4, category5):
+    inputs = [category1, category2, category3, category4, category5]
+    
+    valid_inputs = True
+    input_data = []
+    for text in inputs:
+        if text and not validate_input(text):
+            return f"Invalid input: '{text}'"
+        input_data.append(text if text else '')
 
-if st.button("Generate Text"):
-    with st.spinner("Generating text..."):
-        result = generate_text(prompt, max_length)
-        st.write(result)
+    user_input = ", ".join(input_data)
+    result = generate_quote(user_input)
+    return result
+
+categories = ["category1", "category2", "category3", "category4", "category5"]
+
+input_fields = [gr.Textbox(label=category.capitalize()) for category in categories]
+output_field = gr.Textbox()
+
+gr.Interface(
+    fn=main,
+    inputs=input_fields,
+    outputs=output_field,
+    title="What are the Top 5 Words to Describe How You're Feeling?",
+    description="Example Input for Fine-tuned Model: 'Motivation, Love, Life, Work, Health'"
+).launch(share=True)
