@@ -1,4 +1,4 @@
-# quotes_llms
+# Quotes Generator
 
 Check out our app: [link] 
 
