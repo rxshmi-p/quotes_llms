@@ -3,7 +3,7 @@
 Check out our app: [link] 
 
 ## Overview 
-Our quote generator is an app that provides users with the best quote to capture their current emotions! 
+The Quote Generator is an app that provides users with the best quote to capture their current emotions! 
 
 ## Model
 Built using GPT2, our model is able to capture distinct relationships between common emotions and is fine-tuned to generate quotes and phrases to provide users with some word of wisdom, motivation, and much more! 
